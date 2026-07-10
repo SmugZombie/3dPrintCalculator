@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Print Cost Calculator — Free &amp; Open Source</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🖨️</span>
+      <div>
+        <h1>3D Print Cost Calculator</h1>
+        <p class="tagline">Free &amp; open source · runs entirely in your browser · no signup</p>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="calculator">Calculator</button>
+      <button class="tab-btn" data-tab="quotes">Saved Quotes</button>
+      <button class="tab-btn" data-tab="filaments">Filaments</button>
+      <button class="tab-btn" data-tab="printers">Printer Profiles</button>
+      <button class="tab-btn" data-tab="inventory">Inventory</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ===================== CALCULATOR ===================== -->
+    <section class="tab-panel active" id="tab-calculator">
+      <div class="grid">
+        <div class="col">
+
+          <div class="card">
+            <h2>Project Details</h2>
+            <div class="field-row">
+              <label>Part name
+                <input type="text" id="f-partName" placeholder="e.g. Articulated Dragon" />
+              </label>
+              <label>Technology
+                <select id="f-technology">
+                  <option value="FDM">Filament · FDM</option>
+                  <option value="SLA">Resin · SLA</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-row">
+              <label>Printer profile
+                <select id="f-printer"></select>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="f-batchEnabled" />
+                Batch production
+              </label>
+            </div>
+            <div class="field-row" id="row-batch" hidden>
+              <label>Quantity
+                <input type="number" id="f-batchQty" min="1" step="1" value="1" />
+              </label>
+              <label>One-time setup time (min)
+                <input type="number" id="f-batchSetupMin" min="0" step="1" value="0" />
+                <small>Bed prep, part removal, etc. — counted once per batch, not per unit</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <h2>Materials</h2>
+              <button class="btn-small" id="btn-addMaterial">+ Add material</button>
+            </div>
+            <p class="hint">Add one or more filaments/resins used in this print (multi-material supported).</p>
+            <table class="mini-table" id="table-materials">
+              <thead>
+                <tr><th>Material</th><th>Weight (g)</th><th>Cost/kg</th><th>Subtotal</th><th></th></tr>
+              </thead>
+              <tbody id="materials-body"></tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <h2>Time &amp; Labor</h2>
+            <div class="field-row">
+              <label>Print time — hours (per unit)
+                <input type="number" id="f-printHours" min="0" step="0.1" value="0" />
+              </label>
+              <label>Print time — minutes (per unit)
+                <input type="number" id="f-printMinutes" min="0" max="59" step="1" value="0" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label>Labor time (min, per unit)
+                <input type="number" id="f-laborMinutes" min="0" step="1" value="0" />
+              </label>
+              <label>Labor rate (per hour)
+                <input type="number" id="f-laborRate" min="0" step="0.5" value="15" />
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header-row">
+              <h2>Hardware &amp; Packaging</h2>
+              <button class="btn-small" id="btn-addExtra">+ Add item</button>
+            </div>
+            <p class="hint">Pick from your inventory to auto-track stock, or type a custom cost.</p>
+            <table class="mini-table" id="table-extras">
+              <thead>
+                <tr><th>Type</th><th>Item</th><th>Qty</th><th>Unit cost</th><th>Subtotal</th><th></th></tr>
+              </thead>
+              <tbody id="extras-body"></tbody>
+            </table>
+            <label class="checkbox-label">
+              <input type="checkbox" id="f-deductStock" checked />
+              Deduct used quantities from inventory when I save this quote
+            </label>
+          </div>
+
+          <div class="card">
+            <h2>Advanced Settings</h2>
+            <div class="field-row">
+              <label>Electricity price (per kWh)
+                <input type="number" id="f-electricity" min="0" step="0.01" value="0.30" />
+              </label>
+              <label>VAT rate (%)
+                <input type="number" id="f-vat" min="0" step="1" value="20" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label>Custom profit margin (%)
+                <input type="number" id="f-customMargin" min="0" step="1" value="50" />
+              </label>
+              <label>Currency symbol
+                <input type="text" id="f-currency" maxlength="3" value="$" />
+              </label>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button class="btn-primary" id="btn-saveQuote">💾 Save Quote</button>
+            <button class="btn-secondary" id="btn-newQuote">🗑️ Clear / New</button>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card sticky">
+            <h2>Cost Breakdown</h2>
+            <div id="cost-breakdown"></div>
+            <div class="total-line" id="total-cost-line"></div>
+
+            <h2>Suggested Pricing <small>(per unit — click a tier to see its full breakdown)</small></h2>
+            <table class="mini-table" id="table-pricing">
+              <thead>
+                <tr><th></th><th>Tier</th><th>Margin</th><th>Price (ex. VAT)</th><th>Price (incl. VAT)</th></tr>
+              </thead>
+              <tbody id="pricing-body"></tbody>
+            </table>
+
+            <h2>Selected Tier Breakdown</h2>
+            <div id="tier-breakdown" class="tier-breakdown"></div>
+
+            <div id="batch-summary" hidden class="batch-summary"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== SAVED QUOTES ===================== -->
+    <section class="tab-panel" id="tab-quotes">
+      <div class="card">
+        <div class="card-header-row">
+          <h2>Saved Quotes</h2>
+          <div>
+            <button class="btn-small" id="btn-exportQuotes">Export JSON</button>
+            <button class="btn-small" id="btn-importQuotes">Import JSON</button>
+            <input type="file" id="file-importQuotes" accept="application/json" hidden />
+          </div>
+        </div>
+        <input type="text" id="f-quoteSearch" placeholder="Search saved quotes by name…" class="search-box" />
+        <table class="mini-table">
+          <thead>
+            <tr><th>Name</th><th>Technology</th><th>Qty</th><th>Total cost</th><th>Updated</th><th></th></tr>
+          </thead>
+          <tbody id="quotes-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== FILAMENTS ===================== -->
+    <section class="tab-panel" id="tab-filaments">
+      <div class="card">
+        <div class="card-header-row">
+          <h2>Filament &amp; Resin Library</h2>
+          <button class="btn-small" id="btn-addFilament">+ Add material</button>
+        </div>
+        <p class="hint">Your personal library of materials from any supplier. Used to populate the material dropdown in the calculator.</p>
+        <table class="mini-table">
+          <thead>
+            <tr><th>Name</th><th>Technology</th><th>Cost/kg</th><th></th></tr>
+          </thead>
+          <tbody id="filaments-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== PRINTERS ===================== -->
+    <section class="tab-panel" id="tab-printers">
+      <div class="card">
+        <div class="card-header-row">
+          <h2>Printer Profiles</h2>
+          <button class="btn-small" id="btn-addPrinter">+ Add printer</button>
+        </div>
+        <p class="hint">Machine hourly rate = (purchase cost ÷ expected lifetime hours) + (power draw × electricity price).</p>
+        <table class="mini-table">
+          <thead>
+            <tr><th>Name</th><th>Technology</th><th>Power (W)</th><th>Purchase cost</th><th>Lifetime (h)</th><th>Depreciation/h</th><th></th></tr>
+          </thead>
+          <tbody id="printers-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== INVENTORY ===================== -->
+    <section class="tab-panel" id="tab-inventory">
+      <div class="card">
+        <div class="card-header-row">
+          <h2>Hardware &amp; Packaging Stock</h2>
+          <button class="btn-small" id="btn-addInventory">+ Add item</button>
+        </div>
+        <p class="hint">Track on-hand quantities of screws, magnets, inserts, boxes, etc. Quotes can pull from and deduct this stock.</p>
+        <table class="mini-table">
+          <thead>
+            <tr><th>Type</th><th>Name</th><th>Unit cost</th><th>Qty on hand</th><th></th></tr>
+          </thead>
+          <tbody id="inventory-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="card">
+        <h2>Default Settings</h2>
+        <div class="field-row">
+          <label>Default currency symbol
+            <input type="text" id="s-currency" maxlength="3" />
+          </label>
+          <label>Default VAT rate (%)
+            <input type="number" id="s-vat" min="0" step="1" />
+          </label>
+        </div>
+        <div class="field-row">
+          <label>Default electricity price (per kWh)
+            <input type="number" id="s-electricity" min="0" step="0.01" />
+          </label>
+          <label>Default labor rate (per hour)
+            <input type="number" id="s-laborRate" min="0" step="0.5" />
+          </label>
+        </div>
+        <button class="btn-primary" id="btn-saveSettings">Save Defaults</button>
+      </div>
+
+      <div class="card">
+        <h2>Backup &amp; Restore</h2>
+        <p class="hint">Everything is stored locally in your browser (localStorage). Export a backup regularly, or move your data to another browser/computer.</p>
+        <div class="actions-row">
+          <button class="btn-secondary" id="btn-exportAll">Export full backup</button>
+          <button class="btn-secondary" id="btn-importAll">Import full backup</button>
+          <input type="file" id="file-importAll" accept="application/json" hidden />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>About</h2>
+        <p class="hint">This is a free, open-source, no-signup 3D print cost calculator inspired by commercial tools in this space. All "pro" features — unlimited quotes, custom filament/printer libraries, multi-material, batch production and stock tracking — are unlocked and free, with no account required. Your data never leaves your device.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Free &amp; open source · MIT licensed · no tracking, no signup, no cloud — everything runs and stays in your browser.</p>
+  </footer>
+
+  <script src="js/storage.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

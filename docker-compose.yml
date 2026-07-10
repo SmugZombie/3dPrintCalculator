@@ -1,0 +1,7 @@
+services:
+  calculator:
+    build: .
+    image: 3dprintcalculator:local
+    ports:
+      - "9875:80"
+    restart: unless-stopped
