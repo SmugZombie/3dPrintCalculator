@@ -182,11 +182,11 @@ function gatherComputeInput() {
   };
 }
 
-function computeAndRender() {
+function computeAndRender(opts = {}) {
   const result = computeQuote(gatherComputeInput());
   lastResult = result;
   renderBreakdown(result);
-  renderPricingTable(result);
+  if (!opts.skipPricingTable) renderPricingTable(result);
   renderBatchSummary(result);
   renderTierBreakdown(result);
   return result;
@@ -194,20 +194,37 @@ function computeAndRender() {
 
 function renderBreakdown(result) {
   const rows = [
-    ['Material', result.breakdown.material],
-    ['Hardware', result.breakdown.hardware],
-    ['Packaging', result.breakdown.packaging],
-    ['Labor', result.breakdown.labor],
-    ['Machine', result.breakdown.machine],
+    ['Material', result.breakdown.material, 'var(--c-material)'],
+    ['Hardware', result.breakdown.hardware, 'var(--c-hardware)'],
+    ['Packaging', result.breakdown.packaging, 'var(--c-packaging)'],
+    ['Labor', result.breakdown.labor, 'var(--c-labor)'],
+    ['Machine', result.breakdown.machine, 'var(--c-machine)'],
   ];
-  const max = Math.max(1e-9, ...rows.map((r) => r[1]));
-  $('cost-breakdown').innerHTML = rows.map(([label, value]) => `
+  const rawTotal = rows.reduce((sum, r) => sum + r[1], 0);
+  const total = Math.max(1e-9, rawTotal);
+  $('cost-breakdown').innerHTML = rows.map(([label, value, color]) => `
     <div class="cb-row">
-      <span>${label}</span>
-      <span class="bar"><span class="bar-fill" style="width:${(value / max) * 100}%"></span></span>
-      <span>${fmt(value)}</span>
+      <span class="cb-dot" style="background:${color}"></span>
+      <span class="cb-label">${label}</span>
+      <span class="cb-value">${fmt(value)}</span>
     </div>
   `).join('');
+
+  let stops;
+  if (rawTotal <= 0) {
+    stops = 'var(--border) 0% 100%';
+  } else {
+    let cursor = 0;
+    stops = rows.map(([, value, color]) => {
+      const start = (cursor / total) * 100;
+      cursor += value;
+      const end = (cursor / total) * 100;
+      return `${color} ${start}% ${end}%`;
+    }).join(', ');
+  }
+  $('cost-donut').style.setProperty('--donut-stops', stops);
+  $('donut-total').textContent = fmt(result.totalCost);
+
   const totalLabel = result.qty > 1 ? `Total Landed Cost (×${result.qty})` : 'Total Landed Cost';
   $('total-cost-line').innerHTML = `<span>${totalLabel}</span><span>${fmt(result.totalCost)}</span>`;
 }
@@ -216,18 +233,38 @@ function renderPricingTable(result) {
   if (!result.tiers.some((t) => t.label === state.selectedTier)) {
     state.selectedTier = result.tiers[0].label;
   }
+
+  const active = document.activeElement;
+  const preserveFocus = active && active.id === 'inline-customMargin';
+  const selStart = preserveFocus ? active.selectionStart : null;
+  const selEnd = preserveFocus ? active.selectionEnd : null;
+
   $('pricing-body').innerHTML = result.tiers.map((t) => {
     const selected = t.label === state.selectedTier;
+    const marginCell = t.label === 'Custom'
+      ? `<span class="inline-margin"><input type="number" id="inline-customMargin" min="0" step="1" value="${t.margin}" />%</span>`
+      : `+${t.margin}%`;
     return `
     <tr class="tier-row ${selected ? 'selected' : ''}" data-tier="${t.label}">
       <td><input type="radio" name="tierSelect" ${selected ? 'checked' : ''} /></td>
       <td>${t.label}</td>
-      <td>+${t.margin}%</td>
+      <td>${marginCell}</td>
       <td>${fmt(t.priceExVat)}</td>
       <td>${fmt(t.priceIncVat)}</td>
     </tr>
   `;
   }).join('');
+
+  if (preserveFocus) {
+    const el = $('inline-customMargin');
+    if (el) {
+      el.focus();
+      // number inputs don't support setSelectionRange; text-like inputs do.
+      if (selStart !== null && typeof el.setSelectionRange === 'function' && el.type !== 'number') {
+        el.setSelectionRange(selStart, selEnd);
+      }
+    }
+  }
 }
 
 function renderTierBreakdown(result) {
@@ -331,6 +368,7 @@ function initCalculatorFields() {
   $('f-currency').addEventListener('input', (e) => { state.currency = e.target.value || '$'; computeAndRender(); });
 
   $('pricing-body').addEventListener('click', (e) => {
+    if (e.target.id === 'inline-customMargin') return;
     const tr = e.target.closest('tr[data-tier]');
     if (!tr) return;
     state.selectedTier = tr.dataset.tier;
@@ -338,6 +376,33 @@ function initCalculatorFields() {
       renderPricingTable(lastResult);
       renderTierBreakdown(lastResult);
     }
+  });
+
+  $('pricing-body').addEventListener('input', (e) => {
+    if (e.target.id !== 'inline-customMargin') return;
+    state.customMargin = Number(e.target.value) || 0;
+    $('f-customMargin').value = e.target.value;
+    // Skip rebuilding the pricing table (and thus this input) mid-keystroke —
+    // instead patch just the two price cells so typing/caret isn't disturbed.
+    const result = computeAndRender({ skipPricingTable: true });
+    const customTier = result.tiers.find((t) => t.label === 'Custom');
+    const row = $('pricing-body').querySelector('tr[data-tier="Custom"]');
+    if (row && customTier) {
+      const cells = row.querySelectorAll('td');
+      cells[3].textContent = fmt(customTier.priceExVat);
+      cells[4].textContent = fmt(customTier.priceIncVat);
+    }
+  });
+
+  $('pricing-body').addEventListener('focusin', (e) => {
+    if (e.target.id !== 'inline-customMargin' || state.selectedTier === 'Custom') return;
+    state.selectedTier = 'Custom';
+    $('pricing-body').querySelectorAll('tr[data-tier]').forEach((tr) => {
+      tr.classList.toggle('selected', tr.dataset.tier === 'Custom');
+      const radio = tr.querySelector('input[type="radio"]');
+      if (radio) radio.checked = tr.dataset.tier === 'Custom';
+    });
+    if (lastResult) renderTierBreakdown(lastResult);
   });
 
   $('btn-saveQuote').addEventListener('click', saveCurrentQuote);
