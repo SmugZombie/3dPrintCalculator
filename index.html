@@ -32,7 +32,7 @@
         <div class="col">
 
           <div class="card">
-            <h2>Project Details</h2>
+            <h2>🧾 Project Details</h2>
             <div class="field-row">
               <label>Part name
                 <input type="text" id="f-partName" placeholder="e.g. Articulated Dragon" />
@@ -66,7 +66,7 @@
 
           <div class="card">
             <div class="card-header-row">
-              <h2>Materials</h2>
+              <h2>🧵 Materials</h2>
               <button class="btn-small" id="btn-addMaterial">+ Add material</button>
             </div>
             <p class="hint">Add one or more filaments/resins used in this print (multi-material supported).</p>
@@ -79,7 +79,7 @@
           </div>
 
           <div class="card">
-            <h2>Time &amp; Labor</h2>
+            <h2>⏱️ Time &amp; Labor</h2>
             <div class="field-row">
               <label>Print time — hours (per unit)
                 <input type="number" id="f-printHours" min="0" step="0.1" value="0" />
@@ -100,7 +100,7 @@
 
           <div class="card">
             <div class="card-header-row">
-              <h2>Hardware &amp; Packaging</h2>
+              <h2>🔧 Hardware &amp; Packaging</h2>
               <button class="btn-small" id="btn-addExtra">+ Add item</button>
             </div>
             <p class="hint">Pick from your inventory to auto-track stock, or type a custom cost.</p>
@@ -117,7 +117,7 @@
           </div>
 
           <div class="card">
-            <h2>Advanced Settings</h2>
+            <h2>⚙️ Advanced Settings</h2>
             <div class="field-row">
               <label>Electricity price (per kWh)
                 <input type="number" id="f-electricity" min="0" step="0.01" value="0.30" />
@@ -144,11 +144,14 @@
 
         <div class="col">
           <div class="card sticky">
-            <h2>Cost Breakdown</h2>
-            <div id="cost-breakdown"></div>
+            <h2>💰 Cost Breakdown</h2>
+            <div class="breakdown-layout">
+              <div class="donut" id="cost-donut"><div class="donut-hole"><span class="dh-value" id="donut-total">$0</span><span class="dh-label">total</span></div></div>
+              <div id="cost-breakdown"></div>
+            </div>
             <div class="total-line" id="total-cost-line"></div>
 
-            <h2>Suggested Pricing <small>(per unit — click a tier to see its full breakdown)</small></h2>
+            <h2>🏷️ Suggested Pricing <small>(per unit — click a tier to see its full breakdown)</small></h2>
             <table class="mini-table" id="table-pricing">
               <thead>
                 <tr><th></th><th>Tier</th><th>Margin</th><th>Price (ex. VAT)</th><th>Price (incl. VAT)</th></tr>
@@ -156,7 +159,7 @@
               <tbody id="pricing-body"></tbody>
             </table>
 
-            <h2>Selected Tier Breakdown</h2>
+            <h2>📊 Selected Tier Breakdown</h2>
             <div id="tier-breakdown" class="tier-breakdown"></div>
 
             <div id="batch-summary" hidden class="batch-summary"></div>
@@ -169,7 +172,7 @@
     <section class="tab-panel" id="tab-quotes">
       <div class="card">
         <div class="card-header-row">
-          <h2>Saved Quotes</h2>
+          <h2>📁 Saved Quotes</h2>
           <div>
             <button class="btn-small" id="btn-exportQuotes">Export JSON</button>
             <button class="btn-small" id="btn-importQuotes">Import JSON</button>
@@ -190,7 +193,7 @@
     <section class="tab-panel" id="tab-filaments">
       <div class="card">
         <div class="card-header-row">
-          <h2>Filament &amp; Resin Library</h2>
+          <h2>🧵 Filament &amp; Resin Library</h2>
           <button class="btn-small" id="btn-addFilament">+ Add material</button>
         </div>
         <p class="hint">Your personal library of materials from any supplier. Used to populate the material dropdown in the calculator.</p>
@@ -207,7 +210,7 @@
     <section class="tab-panel" id="tab-printers">
       <div class="card">
         <div class="card-header-row">
-          <h2>Printer Profiles</h2>
+          <h2>🖨️ Printer Profiles</h2>
           <button class="btn-small" id="btn-addPrinter">+ Add printer</button>
         </div>
         <p class="hint">Machine hourly rate = (purchase cost ÷ expected lifetime hours) + (power draw × electricity price).</p>
@@ -224,7 +227,7 @@
     <section class="tab-panel" id="tab-inventory">
       <div class="card">
         <div class="card-header-row">
-          <h2>Hardware &amp; Packaging Stock</h2>
+          <h2>📦 Hardware &amp; Packaging Stock</h2>
           <button class="btn-small" id="btn-addInventory">+ Add item</button>
         </div>
         <p class="hint">Track on-hand quantities of screws, magnets, inserts, boxes, etc. Quotes can pull from and deduct this stock.</p>
@@ -240,7 +243,7 @@
     <!-- ===================== SETTINGS ===================== -->
     <section class="tab-panel" id="tab-settings">
       <div class="card">
-        <h2>Default Settings</h2>
+        <h2>⚙️ Default Settings</h2>
         <div class="field-row">
           <label>Default currency symbol
             <input type="text" id="s-currency" maxlength="3" />
@@ -261,7 +264,7 @@
       </div>
 
       <div class="card">
-        <h2>Backup &amp; Restore</h2>
+        <h2>💾 Backup &amp; Restore</h2>
         <p class="hint">Everything is stored locally in your browser (localStorage). Export a backup regularly, or move your data to another browser/computer.</p>
         <div class="actions-row">
           <button class="btn-secondary" id="btn-exportAll">Export full backup</button>
@@ -271,7 +274,7 @@
       </div>
 
       <div class="card">
-        <h2>About</h2>
+        <h2>ℹ️ About</h2>
         <p class="hint">This is a free, open-source, no-signup 3D print cost calculator inspired by commercial tools in this space. All "pro" features — unlimited quotes, custom filament/printer libraries, multi-material, batch production and stock tracking — are unlocked and free, with no account required. Your data never leaves your device.</p>
       </div>
     </section>
